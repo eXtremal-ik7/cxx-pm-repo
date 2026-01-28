@@ -1,3 +1,54 @@
-DEFAULT_VERSION="6.27.3"
+DEFAULT_VERSION="10.*"
 PACKAGE_TYPE="source"
 LANGS="C,C++"
+
+build-meta() {
+  eval "CMAKE_CONFIGURE_ARGS=${CXXPM_CMAKE_CONFIGURE_ARGS}"
+  eval "CMAKE_BUILD_ARGS=${CXXPM_CMAKE_BUILD_ARGS}"
+
+  if [ "${CXXPM_SYSTEM_SUBTYPE}" = "msvc" ]
+  then
+    INSTALL_ON_WINDOWS="-DROCKSDB_INSTALL_ON_WINDOWS=ON"
+  else
+    INSTALL_ON_WINDOWS="-DROCKSDB_INSTALL_ON_WINDOWS=OFF"
+  fi
+
+  # Snappy paths
+  SNAPPY_PREFIX=`${CXXPM_EXECUTABLE} ${CXXPM_ARGS} --search-path snappy`
+  SNAPPY_INCLUDE_DIR="${SNAPPY_PREFIX}/install/include"
+  SNAPPY_LIBRARY="${SNAPPY_PREFIX}/install/lib/${CXXPM_LIBRARY_PREFIX}snappy${CXXPM_STATIC_LIBRARY_SUFFIX}"
+
+  cd ${CXXPM_SOURCE_DIR}/rocksdb-${CXXPM_PACKAGE_VERSION}
+  for patch in ${PATCHES}; do
+    patch -p1 < ${CXXPM_PACKAGE_DIR}/${patch}
+  done
+
+  cd ${CXXPM_BUILD_DIR}
+  cmake \
+    ${CXXPM_SOURCE_DIR}/rocksdb-${CXXPM_PACKAGE_VERSION} \
+    -DCMAKE_INSTALL_PREFIX=${CXXPM_INSTALL_DIR} \
+    -DWITH_TESTS=OFF \
+    -DWITH_GFLAGS=OFF \
+    -DWITH_BENCHMARK_TOOLS=OFF \
+    -DWITH_CORE_TOOLS=OFF \
+    -DWITH_TOOLS=OFF \
+    -DROCKSDB_BUILD_SHARED=OFF \
+    -DWITH_SNAPPY=ON \
+    -DSnappy_INCLUDE_DIRS="${SNAPPY_INCLUDE_DIR}" \
+    -DSnappy_LIBRARIES="${SNAPPY_LIBRARY}" \
+    -DPORTABLE=ON \
+    -DFAIL_ON_WARNINGS=OFF \
+    "${INSTALL_ON_WINDOWS}" \
+    "${CMAKE_CONFIGURE_ARGS[@]}"
+
+  cmake --build . -j${CXXPM_NPROC} --target install "${CMAKE_BUILD_ARGS[@]}"
+}
+
+artifacts-meta() {
+echo $(cat <<-END
+  [
+    {"type": "include", "name": "ROCKSDB_INCLUDE_DIRECTORY", "path": "include"},
+    {"type": "static_lib", "name": "RocksDB::rocksdb", "path": "lib/${CXXPM_LIBRARY_PREFIX}rocksdb${CXXPM_STATIC_LIBRARY_SUFFIX}", "includes": ["ROCKSDB_INCLUDE_DIRECTORY"]}
+  ]
+END)
+}

@@ -1,0 +1,27 @@
+DEFAULT_VERSION="1.2.2"
+PACKAGE_TYPE="source"
+LANGS="C,C++"
+
+build-meta() {
+  eval "CMAKE_CONFIGURE_ARGS=${CXXPM_CMAKE_CONFIGURE_ARGS}"
+  eval "CMAKE_BUILD_ARGS=${CXXPM_CMAKE_BUILD_ARGS}"
+
+  cd ${CXXPM_BUILD_DIR}
+  cmake \
+    ${CXXPM_SOURCE_DIR}/snappy-${CXXPM_PACKAGE_VERSION} \
+    -DCMAKE_INSTALL_PREFIX=${CXXPM_INSTALL_DIR} \
+    -DSNAPPY_BUILD_TESTS=OFF \
+    -DSNAPPY_BUILD_BENCHMARKS=OFF \
+    "${CMAKE_CONFIGURE_ARGS[@]}"
+
+  cmake --build . -j${CXXPM_NPROC} --target install "${CMAKE_BUILD_ARGS[@]}"
+}
+
+artifacts-meta() {
+echo $(cat <<-END
+  [
+    {"type": "include", "name": "SNAPPY_INCLUDE_DIRECTORY", "path": "include"},
+    {"type": "static_lib", "name": "Snappy::snappy", "path": "lib/${CXXPM_LIBRARY_PREFIX}snappy${CXXPM_STATIC_LIBRARY_SUFFIX}", "includes": ["SNAPPY_INCLUDE_DIRECTORY"]}
+  ]
+END)
+}

@@ -1,0 +1,14 @@
+source meta.build
+
+TYPE="archive"
+URL="https://github.com/facebook/rocksdb/archive/refs/tags/v8.11.5.tar.gz"
+SHA3="8937fdbd56a1a5a805c3e84abb54037cc701d9f5cc87a4461582285c921f23e6"
+DEPENDS="snappy@default"
+
+build() {
+  build-meta
+}
+
+artifacts() {
+  artifacts-meta
+}

@@ -1,0 +1,14 @@
+source meta.build
+
+TYPE="archive"
+URL="https://github.com/facebook/rocksdb/archive/refs/tags/v10.9.1.tar.gz"
+SHA3="23d10711adce6e6a83bc7780bc2c197d2286f8a89b50e86a7c4c801f9b81f666"
+DEPENDS="snappy@default"
+
+build() {
+  build-meta
+}
+
+artifacts() {
+  artifacts-meta
+}
