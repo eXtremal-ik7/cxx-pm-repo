@@ -1,6 +1,6 @@
 source meta.build
 
-DEPENDS="
+DEPENDS_BINARY="
 mingw-gcc-libs-bin
 mingw-libwinpthreads-bin
 "

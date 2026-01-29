@@ -21,7 +21,7 @@ build() {
 	fi
 	
 	cd ${CXXPM_SOURCE_DIR}/msvc/${SOLUTION_DIR}
-	cmd //c "msbuild.bat gc DLL ${CXXPM_MSVC_ARCH} ${CXXPM_BUILD_TYPE}"
+	cmd /c "msbuild.bat gc DLL ${CXXPM_MSVC_ARCH} ${CXXPM_BUILD_TYPE}"
 	
 	mkdir ${CXXPM_INSTALL_DIR}/include
 	mkdir ${CXXPM_INSTALL_DIR}/lib
