@@ -1,0 +1,50 @@
+source meta.build
+
+TYPE="archive"
+URL="https://github.com/facebook/zstd/releases/download/v1.5.7/zstd-1.5.7.tar.gz"
+SHA3="8eaf8a9c9ed5c5ef7a3f1bc68f6e1ab254d8b5947ea9d55455f0a403fa006e6c"
+
+build() {
+  eval "CMAKE_CONFIGURE_ARGS=${CXXPM_CMAKE_CONFIGURE_ARGS}"
+  eval "CMAKE_BUILD_ARGS=${CXXPM_CMAKE_BUILD_ARGS}"
+
+  MSVC_PARRALEL_BUILD_FLAGS=""
+  if [ "${CXXPM_SYSTEM_SUBTYPE}" = "msvc" ]; then
+    MSVC_PARRALEL_BUILD_FLAGS="-DCMAKE_C_FLAGS_INIT=/MP"
+  fi
+
+  cd ${CXXPM_BUILD_DIR}
+  cmake \
+    ${CXXPM_SOURCE_DIR}/zstd-${CXXPM_PACKAGE_VERSION}/build/cmake \
+    -DCMAKE_INSTALL_PREFIX=${CXXPM_INSTALL_DIR} \
+    -DZSTD_BUILD_SHARED=OFF \
+    -DZSTD_BUILD_PROGRAMS=OFF \
+    -DZSTD_BUILD_TESTS=OFF \
+    -DZSTD_BUILD_CONTRIB=OFF \
+    -DZSTD_LEGACY_SUPPORT=OFF \
+    ${MSVC_PARRALEL_BUILD_FLAGS} \
+    "${CMAKE_CONFIGURE_ARGS[@]}"
+
+  cmake --build . ${CXXPM_CMAKE_BUILD_PARALLEL} --target install "${CMAKE_BUILD_ARGS[@]}"
+
+  # Install PDB files for MSVC
+  if [ "${CXXPM_SYSTEM_SUBTYPE}" = "msvc" ]; then
+    cp ${CXXPM_BUILD_DIR}/${CXXPM_BUILD_TYPE}/zstd_static.pdb ${CXXPM_INSTALL_DIR}/lib/ 2>/dev/null || \
+    cp ${CXXPM_BUILD_DIR}/lib/${CXXPM_BUILD_TYPE}/zstd_static.pdb ${CXXPM_INSTALL_DIR}/lib/ 2>/dev/null || true
+  fi
+}
+
+artifacts() {
+  if [ "${CXXPM_SYSTEM_SUBTYPE}" = "msvc" ]; then
+    LIB_NAME="zstd_static"
+  else
+    LIB_NAME="zstd"
+  fi
+
+echo $(cat <<-END
+  [
+    {"type": "include", "name": "ZSTD_INCLUDE_DIRECTORY", "path": "include"},
+    {"type": "static_lib", "name": "zstd::libzstd_static", "path": "lib/${CXXPM_LIBRARY_PREFIX}${LIB_NAME}${CXXPM_STATIC_LIBRARY_SUFFIX}", "includes": ["ZSTD_INCLUDE_DIRECTORY"]}
+  ]
+END)
+}

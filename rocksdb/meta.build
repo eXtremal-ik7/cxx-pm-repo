@@ -5,22 +5,33 @@ LANGS="C,C++"
 build-meta() {
   eval "CMAKE_CONFIGURE_ARGS=${CXXPM_CMAKE_CONFIGURE_ARGS}"
   eval "CMAKE_BUILD_ARGS=${CXXPM_CMAKE_BUILD_ARGS}"
-
-  # Snappy prefix
-  SNAPPY_PREFIX=`${CXXPM_EXECUTABLE} ${CXXPM_ARGS} --search-path snappy`
-  SNAPPY_INSTALL="${SNAPPY_PREFIX}/install"
+  eval "SEARCH_ARGS=${CXXPM_SEARCH_PATH_ARGS}"
 
   MSVC_PARRALEL_BUILD_FLAGS=""
   if [ "${CXXPM_SYSTEM_SUBTYPE}" = "msvc" ]
   then
     INSTALL_ON_WINDOWS="-DROCKSDB_INSTALL_ON_WINDOWS=ON"
     MSVC_PARRALEL_BUILD_FLAGS="-DCMAKE_CXX_FLAGS_INIT=/MP"
-    # thirdparty.inc reads snappy paths from environment variables
+
+    # Get current, Debug and Release prefixes
+    SNAPPY_INSTALL=$(${CXXPM_EXECUTABLE} ${CXXPM_ARGS} "${SEARCH_ARGS[@]}" --build-type=${CXXPM_BUILD_TYPE} --search-path snappy)/install
+    SNAPPY_DEBUG_INSTALL=$(${CXXPM_EXECUTABLE} ${CXXPM_ARGS} "${SEARCH_ARGS[@]}" --build-type=Debug --search-path snappy)/install
+    SNAPPY_RELEASE_INSTALL=$(${CXXPM_EXECUTABLE} ${CXXPM_ARGS} "${SEARCH_ARGS[@]}" --build-type=Release --search-path snappy)/install
+    ZSTD_INSTALL=$(${CXXPM_EXECUTABLE} ${CXXPM_ARGS} "${SEARCH_ARGS[@]}" --build-type=${CXXPM_BUILD_TYPE} --search-path zstd)/install
+    ZSTD_DEBUG_INSTALL=$(${CXXPM_EXECUTABLE} ${CXXPM_ARGS} "${SEARCH_ARGS[@]}" --build-type=Debug --search-path zstd)/install
+    ZSTD_RELEASE_INSTALL=$(${CXXPM_EXECUTABLE} ${CXXPM_ARGS} "${SEARCH_ARGS[@]}" --build-type=Release --search-path zstd)/install
+
+    # thirdparty.inc reads paths from environment variables
     export SNAPPY_INCLUDE="${SNAPPY_INSTALL}/include"
-    export SNAPPY_LIB_DEBUG="${SNAPPY_INSTALL}/lib/snappy.lib"
-    export SNAPPY_LIB_RELEASE="${SNAPPY_INSTALL}/lib/snappy.lib"
+    export SNAPPY_LIB_DEBUG="${SNAPPY_DEBUG_INSTALL}/lib/snappy.lib"
+    export SNAPPY_LIB_RELEASE="${SNAPPY_RELEASE_INSTALL}/lib/snappy.lib"
+    export ZSTD_INCLUDE="${ZSTD_INSTALL}/include"
+    export ZSTD_LIB_DEBUG="${ZSTD_DEBUG_INSTALL}/lib/zstd_static.lib"
+    export ZSTD_LIB_RELEASE="${ZSTD_RELEASE_INSTALL}/lib/zstd_static.lib"
   else
     INSTALL_ON_WINDOWS="-DROCKSDB_INSTALL_ON_WINDOWS=OFF"
+    SNAPPY_INSTALL=$(${CXXPM_EXECUTABLE} ${CXXPM_ARGS} "${SEARCH_ARGS[@]}" --build-type=${CXXPM_BUILD_TYPE} --search-path snappy)/install
+    ZSTD_INSTALL=$(${CXXPM_EXECUTABLE} ${CXXPM_ARGS} "${SEARCH_ARGS[@]}" --build-type=${CXXPM_BUILD_TYPE} --search-path zstd)/install
   fi
 
   cd ${CXXPM_SOURCE_DIR}/rocksdb-${CXXPM_PACKAGE_VERSION}
@@ -32,7 +43,7 @@ build-meta() {
   cmake \
     ${CXXPM_SOURCE_DIR}/rocksdb-${CXXPM_PACKAGE_VERSION} \
     -DCMAKE_INSTALL_PREFIX=${CXXPM_INSTALL_DIR} \
-    -DCMAKE_PREFIX_PATH="${SNAPPY_INSTALL}" \
+    -DCMAKE_PREFIX_PATH="${SNAPPY_INSTALL};${ZSTD_INSTALL}" \
     -DWITH_TESTS=OFF \
     -DWITH_GFLAGS=OFF \
     -DWITH_BENCHMARK_TOOLS=OFF \
@@ -40,20 +51,29 @@ build-meta() {
     -DWITH_TOOLS=OFF \
     -DROCKSDB_BUILD_SHARED=OFF \
     -DWITH_SNAPPY=ON \
+    -DWITH_ZSTD=ON \
     -DPORTABLE=ON \
     -DFAIL_ON_WARNINGS=OFF \
+    -DUSE_RTTI=OFF \
     "${INSTALL_ON_WINDOWS}" \
     ${MSVC_PARRALEL_BUILD_FLAGS} \
     "${CMAKE_CONFIGURE_ARGS[@]}"
 
   cmake --build . ${CXXPM_CMAKE_BUILD_PARALLEL} --target install "${CMAKE_BUILD_ARGS[@]}"
+
+  # Install PDB files for MSVC (avoids LNK4099 warnings when linking Debug builds)
+  if [ "${CXXPM_SYSTEM_SUBTYPE}" = "msvc" ]; then
+    cp ${CXXPM_BUILD_DIR}/${CXXPM_BUILD_TYPE}/rocksdb.pdb ${CXXPM_INSTALL_DIR}/lib/ 2>/dev/null || true
+  fi
 }
 
 artifacts-meta() {
 echo $(cat <<-END
   [
     {"type": "include", "name": "ROCKSDB_INCLUDE_DIRECTORY", "path": "include"},
-    {"type": "static_lib", "name": "RocksDB::rocksdb", "path": "lib/${CXXPM_LIBRARY_PREFIX}rocksdb${CXXPM_STATIC_LIBRARY_SUFFIX}", "includes": ["ROCKSDB_INCLUDE_DIRECTORY"]}
+    {"type": "static_lib", "name": "RocksDB::rocksdb", "path": "lib/${CXXPM_LIBRARY_PREFIX}rocksdb${CXXPM_STATIC_LIBRARY_SUFFIX}", "includes": ["ROCKSDB_INCLUDE_DIRECTORY"]${SYSTEM_LIBS}},
+    {"type": "system_lib", "name": "rpcrt4", "system_name": "Windows"},
+    {"type": "system_lib", "name": "shlwapi", "system_name": "Windows"}
   ]
 END)
 }

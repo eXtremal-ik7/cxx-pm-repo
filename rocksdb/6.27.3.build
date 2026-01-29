@@ -4,7 +4,7 @@ TYPE="archive"
 URL="https://github.com/facebook/rocksdb/archive/refs/tags/v6.27.3.tar.gz"
 SHA3="99c00757dbf25e921db92b45388f93b32e7b2bbd1521b1d7efc9dbf994dfca3a"
 PATCHES="6.27.3-compilation-fix.patch"
-DEPENDS="snappy@default"
+DEPENDS="snappy@default zstd@default"
 
 build() {
   build-meta

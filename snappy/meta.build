@@ -21,6 +21,11 @@ build-meta() {
     "${CMAKE_CONFIGURE_ARGS[@]}"
 
   cmake --build . ${CXXPM_CMAKE_BUILD_PARALLEL} --target install "${CMAKE_BUILD_ARGS[@]}"
+
+  # Install PDB files for MSVC
+  if [ "${CXXPM_SYSTEM_SUBTYPE}" = "msvc" ]; then
+    cp ${CXXPM_BUILD_DIR}/${CXXPM_BUILD_TYPE}/snappy.pdb ${CXXPM_INSTALL_DIR}/lib/ 2>/dev/null || true
+  fi
 }
 
 artifacts-meta() {
