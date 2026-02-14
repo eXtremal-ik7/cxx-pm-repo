@@ -1,0 +1,14 @@
+source meta.build
+
+TYPE="archive"
+URL="https://github.com/google/googletest/archive/refs/tags/v1.17.0.tar.gz"
+SHA3="87c368faa651522675a377a4d3cbff8490dda27a12b0fb87bd841b2a5dd5ad61"
+GTEST_SOURCE_DIR="googletest-${CXXPM_PACKAGE_VERSION}"
+
+build() {
+  build-meta
+}
+
+artifacts() {
+  artifacts-meta
+}
