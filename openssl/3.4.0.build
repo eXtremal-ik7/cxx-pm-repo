@@ -13,7 +13,7 @@ build() {
 }
 
 artifacts() {
-  if [ "${CXXPM_SYSTEM_NAME}" = "Linux" ]
+  if [ "${CXXPM_SYSTEM_NAME}" = "Linux" ] && [ "${CXXPM_SYSTEM_PROCESSOR}" = "x86_64" ]
   then
     OPENSSL_LIB_DIRECTORY="lib64"
   else
