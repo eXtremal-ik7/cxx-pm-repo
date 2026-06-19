@@ -18,6 +18,15 @@ build-meta() {
       "aarch64") OPENSSL_ARCH="linux-aarch64";;
       esac;;
 
+    # Android (NDK). The toolchain is the standard NDK clang; the C compiler
+    # path cxx-pm passes lets build-meta locate the NDK below.
+    "Android") case "${CXXPM_SYSTEM_PROCESSOR}" in
+      "aarch64")        OPENSSL_ARCH="android-arm64";;
+      "x86_64")         OPENSSL_ARCH="android-x86_64";;
+      "armv7-a"|"arm")  OPENSSL_ARCH="android-arm";;
+      "i686"|"x86")     OPENSSL_ARCH="android-x86";;
+      esac;;
+
     # MacOS X
     "Darwin") case "${CXXPM_SYSTEM_PROCESSOR}" in
       "x86_64") OPENSSL_ARCH="darwin64-x86_64-cc";;
@@ -87,6 +96,19 @@ build-meta() {
   elif [[ "${CXXPM_SYSTEM_NAME}" = "Darwin" ]]
   then
     ./Configure ${OPENSSL_ARCH} --prefix=${CXXPM_INSTALL_DIR} ${BUILD_TYPE} CC=${CXXPM_COMPILER_C_COMMAND} no-shared no-tests "${ISYSROOT[@]}"
+  elif [[ "${CXXPM_SYSTEM_NAME}" = "Android" ]]
+  then
+    # OpenSSL's android-* targets want the NDK's llvm bin on PATH (plain "clang"
+    # + binutils) and ANDROID_NDK_ROOT defined. Both are derived from the C
+    # compiler path cxx-pm passes (.../toolchains/llvm/prebuilt/<host>/bin/<triple><api>-clang).
+    NDK_BIN=$(dirname "${CXXPM_COMPILER_C_COMMAND}")
+    export PATH="${NDK_BIN}:${PATH}"
+    export ANDROID_NDK_ROOT=$(cd "${NDK_BIN}/../../../../.." && pwd)
+    # API level: take it from the compiler name (aarch64-linux-android24-clang)
+    # if present, else default to 24 (the app's minSdk).
+    ANDROID_API=$(echo "${CXXPM_COMPILER_C_COMMAND}" | sed -nE 's/.*android([0-9]+)-clang.*/\1/p')
+    ./Configure ${OPENSSL_ARCH} -D__ANDROID_API__=${ANDROID_API:-24} \
+      --prefix=${CXXPM_INSTALL_DIR} ${BUILD_TYPE} no-shared no-tests
   else
     ./Configure ${OPENSSL_ARCH} --prefix=${CXXPM_INSTALL_DIR} ${BUILD_TYPE} CC=${CXXPM_COMPILER_C_COMMAND} no-shared no-tests WINDRES=${CXXPM_TOOL_RC_COMMAND}
   fi
