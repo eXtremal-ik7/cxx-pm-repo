@@ -1,0 +1,13 @@
+source meta.build
+
+TYPE="archive"
+URL="https://github.com/madler/zlib/releases/download/v1.3.2/zlib-1.3.2.tar.gz"
+SHA3="451bedbdcd78dec3704df673c976fab25beaef6adb9433fe84665e7bf946e325"
+
+build() {
+  build-meta
+}
+
+artifacts() {
+  artifacts-meta
+}

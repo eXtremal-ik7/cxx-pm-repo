@@ -1,0 +1,39 @@
+DEFAULT_VERSION="1.0.8"
+PACKAGE_TYPE="source"
+LANGS="C"
+
+build-meta() {
+  eval "CMAKE_CONFIGURE_ARGS=${CXXPM_CMAKE_CONFIGURE_ARGS}"
+  eval "CMAKE_BUILD_ARGS=${CXXPM_CMAKE_BUILD_ARGS}"
+
+  MSVC_PARALLEL_BUILD_FLAGS=""
+  if [ "${CXXPM_SYSTEM_SUBTYPE}" = "msvc" ]; then
+    MSVC_PARALLEL_BUILD_FLAGS="-DCMAKE_C_FLAGS_INIT=/MP"
+  fi
+
+  # upstream ships makefiles only, use own CMakeLists.txt
+  cp ${CXXPM_PACKAGE_DIR}/CMakeLists.txt ${CXXPM_SOURCE_DIR}/bzip2-${CXXPM_PACKAGE_VERSION}/
+
+  cd ${CXXPM_BUILD_DIR}
+  cmake \
+    ${CXXPM_SOURCE_DIR}/bzip2-${CXXPM_PACKAGE_VERSION} \
+    -DCMAKE_INSTALL_PREFIX=${CXXPM_INSTALL_DIR} \
+    ${MSVC_PARALLEL_BUILD_FLAGS} \
+    "${CMAKE_CONFIGURE_ARGS[@]}"
+
+  cmake --build . ${CXXPM_CMAKE_BUILD_PARALLEL} --target install "${CMAKE_BUILD_ARGS[@]}"
+
+  # Install PDB files for MSVC
+  if [ "${CXXPM_SYSTEM_SUBTYPE}" = "msvc" ]; then
+    cp ${CXXPM_BUILD_DIR}/${CXXPM_BUILD_TYPE}/bz2.pdb ${CXXPM_INSTALL_DIR}/lib/ 2>/dev/null || true
+  fi
+}
+
+artifacts-meta() {
+echo $(cat <<-END
+  [
+    {"type": "include", "name": "BZIP2_INCLUDE_DIRECTORY", "path": "include"},
+    {"type": "static_lib", "name": "BZip2::BZip2", "path": "lib/${CXXPM_LIBRARY_PREFIX}bz2${CXXPM_STATIC_LIBRARY_SUFFIX}", "includes": ["BZIP2_INCLUDE_DIRECTORY"]}
+  ]
+END)
+}

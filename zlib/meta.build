@@ -1,0 +1,52 @@
+DEFAULT_VERSION="1.3.2"
+PACKAGE_TYPE="source"
+LANGS="C"
+
+build-meta() {
+  eval "CMAKE_CONFIGURE_ARGS=${CXXPM_CMAKE_CONFIGURE_ARGS}"
+  eval "CMAKE_BUILD_ARGS=${CXXPM_CMAKE_BUILD_ARGS}"
+
+  MSVC_PARALLEL_BUILD_FLAGS=""
+  if [ "${CXXPM_SYSTEM_SUBTYPE}" = "msvc" ]; then
+    MSVC_PARALLEL_BUILD_FLAGS="-DCMAKE_C_FLAGS_INIT=/MP"
+  fi
+
+  cd ${CXXPM_BUILD_DIR}
+  cmake \
+    ${CXXPM_SOURCE_DIR}/zlib-${CXXPM_PACKAGE_VERSION} \
+    -DCMAKE_INSTALL_PREFIX=${CXXPM_INSTALL_DIR} \
+    -DZLIB_BUILD_SHARED=OFF \
+    -DZLIB_BUILD_STATIC=ON \
+    -DZLIB_BUILD_TESTING=OFF \
+    -DZLIB_INSTALL=ON \
+    ${MSVC_PARALLEL_BUILD_FLAGS} \
+    "${CMAKE_CONFIGURE_ARGS[@]}"
+
+  cmake --build . ${CXXPM_CMAKE_BUILD_PARALLEL} --target install "${CMAKE_BUILD_ARGS[@]}"
+
+  # On Windows zlib names the static library 'zs' and appends 'd' for Debug builds.
+  # Rename it to the platform-independent 'z' expected by find_package(ZLIB)
+  # (and used by the artifacts below)
+  if [ "${CXXPM_SYSTEM_NAME}" = "Windows" ]; then
+    for NAME in zs zsd; do
+      STATIC_LIB="${CXXPM_INSTALL_DIR}/lib/${CXXPM_LIBRARY_PREFIX}${NAME}${CXXPM_STATIC_LIBRARY_SUFFIX}"
+      if [ -f "${STATIC_LIB}" ]; then
+        mv "${STATIC_LIB}" "${CXXPM_INSTALL_DIR}/lib/${CXXPM_LIBRARY_PREFIX}z${CXXPM_STATIC_LIBRARY_SUFFIX}"
+      fi
+    done
+  fi
+
+  # Install PDB files for MSVC
+  if [ "${CXXPM_SYSTEM_SUBTYPE}" = "msvc" ]; then
+    cp ${CXXPM_BUILD_DIR}/${CXXPM_BUILD_TYPE}/zlibstatic.pdb ${CXXPM_INSTALL_DIR}/lib/ 2>/dev/null || true
+  fi
+}
+
+artifacts-meta() {
+echo $(cat <<-END
+  [
+    {"type": "include", "name": "ZLIB_INCLUDE_DIRECTORY", "path": "include"},
+    {"type": "static_lib", "name": "ZLIB::ZLIB", "path": "lib/${CXXPM_LIBRARY_PREFIX}z${CXXPM_STATIC_LIBRARY_SUFFIX}", "includes": ["ZLIB_INCLUDE_DIRECTORY"]}
+  ]
+END)
+}

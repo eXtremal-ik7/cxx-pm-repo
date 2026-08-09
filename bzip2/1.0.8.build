@@ -1,0 +1,13 @@
+source meta.build
+
+TYPE="archive"
+URL="https://sourceware.org/pub/bzip2/bzip2-1.0.8.tar.gz"
+SHA3="34400e535a9018e93fc04f509811df340e8f9b48b06467b9c025400ac0a4898d"
+
+build() {
+  build-meta
+}
+
+artifacts() {
+  artifacts-meta
+}
