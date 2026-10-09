@@ -1,0 +1,126 @@
+DEFAULT_VERSION="3.12.11"
+PACKAGE_TYPE="source"
+LANGS="C"
+
+# CPython for embedding, linked in statically: libpython with the extension modules of the
+# standard library built into it, so there is no shared module to load. Built are the modules that
+# need no library beyond libc, zlib and bzip2 (these two from cxx-pm); the ones that would need
+# another one are left out: _ssl, _hashlib (hashlib falls back to its own hashes), _sqlite3,
+# _ctypes, _lzma, _uuid, _dbm, _gdbm, readline, _curses, _curses_panel, _tkinter, _crypt, nis.
+# Nor are the test modules, and xxlimited, xxlimited_35: examples of the limited API, shared
+# whatever MODULE_BUILDTYPE says.
+# Also installed are the interpreter and the standard library, for a project that freezes the
+# part of it it imports.
+#
+# A Debug build is a plain one too: Py_DEBUG changes the ABI, and a project mixing build types
+# would get two Pythons.
+
+build-meta() {
+  if [[ "${CXXPM_SYSTEM_NAME}" = "Windows" ]]
+  then
+    echo "python: Windows is not supported (configure and make only)"
+    exit 1
+  fi
+
+  eval "SEARCH_ARGS=${CXXPM_SEARCH_PATH_ARGS}"
+
+  # install prefix of a dependency: dependency-prefix <package> <build type>
+  dependency-prefix() {
+    echo $(${CXXPM_EXECUTABLE} ${CXXPM_ARGS} "${SEARCH_ARGS[@]}" --build-type=$2 --search-path $1)/install
+  }
+
+  ZLIB_INSTALL=$(dependency-prefix zlib ${CXXPM_BUILD_TYPE})
+  BZIP2_INSTALL=$(dependency-prefix bzip2 ${CXXPM_BUILD_TYPE})
+
+  C_FLAGS="-fPIC"
+  if [[ "${CXXPM_SYSTEM_NAME}" = "Darwin" && "${CXXPM_COMPILER_C_TYPE}" = "clang" ]]
+  then
+    C_FLAGS="${C_FLAGS} -arch ${CXXPM_CLANG_ARCH} -isysroot ${CXXPM_ISYSROOT}"
+  fi
+
+  # Every module static, the ones left out marked not available; zlib and bzip2 given as the flags
+  # pkg-config would have found, which configure takes as they are
+  NOT_AVAILABLE=""
+  for MODULE in _ssl _hashlib _sqlite3 _ctypes _lzma _uuid _dbm _gdbm readline _curses _curses_panel _tkinter _crypt nis _scproxy xxlimited xxlimited_35
+  do
+    NOT_AVAILABLE="${NOT_AVAILABLE} py_cv_module_${MODULE}=n/a"
+  done
+
+  cd ${CXXPM_BUILD_DIR}
+  ${CXXPM_SOURCE_DIR}/Python-${CXXPM_PACKAGE_VERSION}/configure \
+    --prefix=${CXXPM_INSTALL_DIR} \
+    --host=${CXXPM_AUTOTOOLS_HOST} \
+    --build=${CXXPM_AUTOTOOLS_HOST} \
+    --disable-shared \
+    --disable-test-modules \
+    --without-ensurepip \
+    MODULE_BUILDTYPE=static \
+    ${NOT_AVAILABLE} \
+    "CC=${CXXPM_COMPILER_C_COMMAND}" \
+    "CFLAGS=${C_FLAGS}" \
+    "ZLIB_CFLAGS=-I${ZLIB_INSTALL}/include" \
+    "ZLIB_LIBS=${ZLIB_INSTALL}/lib/${CXXPM_LIBRARY_PREFIX}z${CXXPM_STATIC_LIBRARY_SUFFIX}" \
+    "BZIP2_CFLAGS=-I${BZIP2_INSTALL}/include" \
+    "BZIP2_LIBS=${BZIP2_INSTALL}/lib/${CXXPM_LIBRARY_PREFIX}bz2${CXXPM_STATIC_LIBRARY_SUFFIX}"
+  make -j${CXXPM_NPROC}
+  make install
+
+  # The libraries bundled with the sources that built-in modules link with (expat for pyexpat,
+  # mpdec for _decimal, HACL* for _sha2) go into libpython: the python executable links them on its
+  # own, an embedder would find them nowhere
+  PYTHON_ABI="${CXXPM_PACKAGE_VERSION%.*}"
+  LIBPYTHON="${CXXPM_INSTALL_DIR}/lib/libpython${PYTHON_ABI}.a"
+  BUNDLED=$(find Modules -name '*.a' | sort)
+  if [ -n "${BUNDLED}" ]
+  then
+    echo "python: libpython takes in" ${BUNDLED}
+    if [ "${CXXPM_SYSTEM_NAME}" = "Darwin" ]
+    then
+      libtool -static -o "${LIBPYTHON}.new" "${LIBPYTHON}" ${BUNDLED}
+    else
+      {
+        echo "CREATE ${LIBPYTHON}.new"
+        echo "ADDLIB ${LIBPYTHON}"
+        for ARCHIVE in ${BUNDLED}
+        do
+          echo "ADDLIB ${ARCHIVE}"
+        done
+        echo "SAVE"
+        echo "END"
+      } | ar -M
+    fi
+    mv "${LIBPYTHON}.new" "${LIBPYTHON}"
+    # The copy python-config points to
+    for COPY in ${CXXPM_INSTALL_DIR}/lib/python${PYTHON_ABI}/config-${PYTHON_ABI}*/libpython${PYTHON_ABI}.a
+    do
+      if [[ -f "${COPY}" && ! -L "${COPY}" ]]
+      then
+        cp "${LIBPYTHON}" "${COPY}"
+      fi
+    done
+  fi
+
+  # Nothing may be loaded from the disk: a shared module here means the module list above is wrong
+  if [ -n "$(find ${CXXPM_INSTALL_DIR}/lib -name '*.so' -print -quit)" ]
+  then
+    echo "python: shared modules were built"
+    exit 1
+  fi
+}
+
+artifacts-meta() {
+  PYTHON_ABI="${CXXPM_PACKAGE_VERSION%.*}"
+echo $(cat <<-END
+  [
+    {"type": "include", "name": "PYTHON_INCLUDE_DIRECTORY", "path": "include/python${PYTHON_ABI}"},
+    {"type": "include", "name": "PYTHON_STDLIB_DIRECTORY", "path": "lib/python${PYTHON_ABI}"},
+    {"type": "executable", "name": "PYTHON_EXECUTABLE", "path": "bin/python${PYTHON_ABI}"},
+    {"type": "static_lib", "name": "Python::Python", "path": "lib/${CXXPM_LIBRARY_PREFIX}python${PYTHON_ABI}${CXXPM_STATIC_LIBRARY_SUFFIX}", "includes": ["PYTHON_INCLUDE_DIRECTORY"]},
+    {"type": "system_lib", "name": "util", "system_name": "Linux"},
+    {"type": "system_lib", "name": "dl", "system_name": "Linux"},
+    {"type": "system_lib", "name": "rt", "system_name": "Linux"},
+    {"type": "system_lib", "name": "pthread", "system_name": "Linux"},
+    {"type": "system_lib", "name": "m", "system_name": "Linux"}
+  ]
+END)
+}

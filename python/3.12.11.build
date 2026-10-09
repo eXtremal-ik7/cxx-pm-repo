@@ -1,0 +1,14 @@
+source meta.build
+
+TYPE="archive"
+URL="https://www.python.org/ftp/python/3.12.11/Python-3.12.11.tar.xz"
+SHA3="047230454c7b1c71d566178ebd13f2433db2a200f5fb3eacb99006a1f03aa5b3"
+DEPENDS="zlib@default bzip2@default"
+
+build() {
+  build-meta
+}
+
+artifacts() {
+  artifacts-meta
+}
