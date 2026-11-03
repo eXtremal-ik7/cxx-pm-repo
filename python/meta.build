@@ -122,5 +122,6 @@ echo $(cat <<-END
     {"type": "system_lib", "name": "pthread", "system_name": "Linux"},
     {"type": "system_lib", "name": "m", "system_name": "Linux"}
   ]
-END)
+END
+)
 }

@@ -69,7 +69,8 @@ echo $(cat <<-END
     },
     {"type": "libset", "name": "MPIR_LIBRARIES", "libs": ["mpir::libmpir"]}
   ]
-END)
+END
+)
 }
 
 artifacts-other() {
@@ -98,7 +99,8 @@ echo $(cat <<-END
     },
     {"type": "libset", "name": "MPIR_LIBRARIES", "libs": ["mpir::libmpir", "mpir::libmpirxx"]}
   ]
-END)
+END
+)
 }
 
 artifacts() {

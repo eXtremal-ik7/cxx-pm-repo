@@ -42,5 +42,6 @@ echo $(cat <<-END
     {"type": "cmake_module", "name": "config", "path": "${CMAKE_MODULE}"},
     {"type": "cmake_module", "name": "config", "path": "${CMAKE_BUILD_MODULE}"}
   ]
-END)
+END
+)
 }

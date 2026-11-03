@@ -46,5 +46,6 @@ echo $(cat <<-END
     {"type": "include", "name": "ZSTD_INCLUDE_DIRECTORY", "path": "include"},
     {"type": "static_lib", "name": "zstd::libzstd_static", "path": "lib/${CXXPM_LIBRARY_PREFIX}${LIB_NAME}${CXXPM_STATIC_LIBRARY_SUFFIX}", "includes": ["ZSTD_INCLUDE_DIRECTORY"]}
   ]
-END)
+END
+)
 }

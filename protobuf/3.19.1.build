@@ -52,5 +52,6 @@ echo $(cat <<-END
     {"type": "executable", "name": "protobuf::protoc", "path": "bin/protoc${CXXPM_EXECUTABLE_SUFFIX}"},
     {"type": "cmake_module", "name": "config", "path": "${CMAKE_MODULE}"}
   ]
-END)
+END
+)
 }

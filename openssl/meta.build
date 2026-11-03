@@ -132,5 +132,6 @@ echo $(cat <<-END
     {"type": "static_lib", "name": "OpenSSL::Crypto", "path": "${OPENSSL_LIB_DIRECTORY}/${LIBRARY_PREFIX}crypto${CXXPM_STATIC_LIBRARY_SUFFIX}", "includes": ["OPENSSL_INCLUDE_DIRECTORY"]},
     {"type": "libset", "name": "OPENSSL_LIBRARIES", "libs": ["OpenSSL::SSL", "OpenSSL::Crypto"]}
   ]
-END)
+END
+)
 }

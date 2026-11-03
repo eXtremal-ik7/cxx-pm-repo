@@ -118,5 +118,6 @@ echo $(cat <<-END
     {"type": "system_lib", "name": "rpcrt4", "system_name": "Windows"},
     {"type": "system_lib", "name": "shlwapi", "system_name": "Windows"}${XPRESS_SYSTEM_LIB}
   ]
-END)
+END
+)
 }

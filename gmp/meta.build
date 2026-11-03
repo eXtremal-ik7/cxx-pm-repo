@@ -9,30 +9,54 @@ build-meta() {
     exit 1
   fi
 
+  C_COMMAND="${CXXPM_COMPILER_C_COMMAND}"
+  CXX_COMMAND="${CXXPM_COMPILER_CXX_COMMAND}"
+
+  # gmp's configure is not C23 ('void g(){}' called with arguments): gnu17 for a compiler whose
+  # default is newer, as gcc 15's is
+  if printf '#if __STDC_VERSION__ > 201710L\nnewer\n#endif\n' | "${C_COMMAND}" -E -P -x c - 2>/dev/null | grep -q newer
+  then
+    C_COMMAND="${C_COMMAND} -std=gnu17"
+  fi
+
+  # Target flags go with the compiler: CFLAGS given to configure, even empty, replace the flags
+  # gmp picks for the CPU and the ABI
   if [[ "${CXXPM_SYSTEM_NAME}" = "Darwin" && "${CXXPM_COMPILER_C_TYPE}" = "clang" ]]
   then
-    C_FLAGS="-arch ${CXXPM_CLANG_ARCH} -isysroot ${CXXPM_ISYSROOT}"
-    CXX_FLAGS="-arch ${CXXPM_CLANG_ARCH} -isysroot ${CXXPM_ISYSROOT}"
+    C_COMMAND="${C_COMMAND} -arch ${CXXPM_CLANG_ARCH} -isysroot ${CXXPM_ISYSROOT}"
+    CXX_COMMAND="${CXX_COMMAND} -arch ${CXXPM_CLANG_ARCH} -isysroot ${CXXPM_ISYSROOT}"
   fi
 
-    # Build type
+  # Appended to gmp's own flags: external C_FLAGS/CXX_FLAGS, after the build type's
+  EXTRA_C_FLAGS="${C_FLAGS}"
+  EXTRA_CXX_FLAGS="${CXX_FLAGS}"
   if [ "${CXXPM_BUILD_TYPE}" = "Debug" ]
   then
-    C_FLAGS="${C_FLAGS} -g -O0"
-    CXX_FLAGS="${CXX_FLAGS} -g -O0"
+    EXTRA_C_FLAGS="-g -O0 ${EXTRA_C_FLAGS}"
+    EXTRA_CXX_FLAGS="-g -O0 ${EXTRA_CXX_FLAGS}"
   fi
 
+  CONFIGURE_ARGS=(
+    --prefix=${CXXPM_INSTALL_DIR}
+    --host=${CXXPM_AUTOTOOLS_HOST}
+    --disable-static
+    --enable-shared
+    --enable-cxx
+    "CC=${C_COMMAND}"
+    "CXX=${CXX_COMMAND}"
+  )
+
   cd ${CXXPM_BUILD_DIR}
-  ${CXXPM_SOURCE_DIR}/gmp-${CXXPM_PACKAGE_VERSION}/configure \
-    --prefix=${CXXPM_INSTALL_DIR} \
-    --host=${CXXPM_AUTOTOOLS_HOST} \
-    --disable-static \
-    --enable-shared \
-    --enable-cxx \
-    "CC=${CXXPM_COMPILER_C_COMMAND}" \
-    "CXX=${CXXPM_COMPILER_CXX_COMMAND}" \
-    "CFLAGS=${C_FLAGS}" \
-    "CXXFLAGS=${CXX_FLAGS}"
+  ${CXXPM_SOURCE_DIR}/gmp-${CXXPM_PACKAGE_VERSION}/configure "${CONFIGURE_ARGS[@]}"
+  # configure has no way to append: run it again with its choice plus ours
+  if [[ -n "${EXTRA_C_FLAGS// }${EXTRA_CXX_FLAGS// }" ]]
+  then
+    GMP_C_FLAGS=$(sed -n 's/^CFLAGS = //p' Makefile)
+    GMP_CXX_FLAGS=$(sed -n 's/^CXXFLAGS = //p' Makefile)
+    ${CXXPM_SOURCE_DIR}/gmp-${CXXPM_PACKAGE_VERSION}/configure "${CONFIGURE_ARGS[@]}" \
+      "CFLAGS=${GMP_C_FLAGS} ${EXTRA_C_FLAGS}" \
+      "CXXFLAGS=${GMP_CXX_FLAGS} ${EXTRA_CXX_FLAGS}"
+  fi
   make -j${CXXPM_NPROC}
   make install
 }
@@ -62,5 +86,6 @@ echo $(cat <<-END
       "includes": ["GMP_INCLUDE_DIRECTORY"]
     }
   ]
-END)
+END
+)
 }

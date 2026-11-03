@@ -15,6 +15,8 @@ build() {
 
   cd ${CXXPM_SOURCE_DIR}/oneTBB-${CXXPM_PACKAGE_VERSION}
   patch -p1 < ${CXXPM_PACKAGE_DIR}/2021.4.0-exceptions.patch
+  # CMake 4 refuses a policy version below 3.5
+  patch -p1 < ${CXXPM_PACKAGE_DIR}/2021.4.0-cmake4.patch
 
   cd ${CXXPM_BUILD_DIR}
   cmake \
@@ -52,5 +54,6 @@ echo $(cat <<-END
       "definitions": ${DEFS}
     }
   ]
-END)
+END
+)
 }

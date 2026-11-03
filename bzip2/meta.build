@@ -35,5 +35,6 @@ echo $(cat <<-END
     {"type": "include", "name": "BZIP2_INCLUDE_DIRECTORY", "path": "include"},
     {"type": "static_lib", "name": "BZip2::BZip2", "path": "lib/${CXXPM_LIBRARY_PREFIX}bz2${CXXPM_STATIC_LIBRARY_SUFFIX}", "includes": ["BZIP2_INCLUDE_DIRECTORY"]}
   ]
-END)
+END
+)
 }

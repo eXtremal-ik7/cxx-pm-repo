@@ -34,5 +34,6 @@ echo $(cat <<-END
   [
     {"type": "include", "name": "RAPIDJSON_INCLUDE_DIRECTORY", "path": "include"}
   ]
-END)
+END
+)
 }

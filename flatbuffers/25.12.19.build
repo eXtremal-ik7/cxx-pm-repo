@@ -36,5 +36,6 @@ echo $(cat <<-END
     {"type": "static_lib", "name": "flatbuffers::libflatbuffers", "path": "lib/${CXXPM_LIBRARY_PREFIX}flatbuffers${CXXPM_STATIC_LIBRARY_SUFFIX}", "includes": ["FLATBUFFERS_INCLUDE_DIRECTORY"]},
     {"type": "executable", "name": "flatbuffers::flatc", "path": "bin/flatc${CXXPM_EXECUTABLE_SUFFIX}"}
   ]
-END)
+END
+)
 }

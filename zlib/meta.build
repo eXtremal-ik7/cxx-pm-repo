@@ -48,5 +48,6 @@ echo $(cat <<-END
     {"type": "include", "name": "ZLIB_INCLUDE_DIRECTORY", "path": "include"},
     {"type": "static_lib", "name": "ZLIB::ZLIB", "path": "lib/${CXXPM_LIBRARY_PREFIX}z${CXXPM_STATIC_LIBRARY_SUFFIX}", "includes": ["ZLIB_INCLUDE_DIRECTORY"]}
   ]
-END)
+END
+)
 }

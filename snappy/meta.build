@@ -34,5 +34,6 @@ echo $(cat <<-END
     {"type": "include", "name": "SNAPPY_INCLUDE_DIRECTORY", "path": "include"},
     {"type": "static_lib", "name": "Snappy::snappy", "path": "lib/${CXXPM_LIBRARY_PREFIX}snappy${CXXPM_STATIC_LIBRARY_SUFFIX}", "includes": ["SNAPPY_INCLUDE_DIRECTORY"]}
   ]
-END)
+END
+)
 }
