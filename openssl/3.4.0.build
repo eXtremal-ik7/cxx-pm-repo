@@ -13,7 +13,10 @@ build() {
 }
 
 artifacts() {
-  if [ "${CXXPM_SYSTEM_NAME}" = "Linux" ] && [ "${CXXPM_SYSTEM_PROCESSOR}" = "x86_64" ]
+  # OpenSSL 3.x installs 64-bit libraries into lib64 on Linux x86_64 and for the
+  # mingw64 target (MinGW-w64 x86_64); everything else uses lib.
+  if [ "${CXXPM_SYSTEM_PROCESSOR}" = "x86_64" ] && { [ "${CXXPM_SYSTEM_NAME}" = "Linux" ] || \
+     { [ "${CXXPM_SYSTEM_NAME}" = "Windows" ] && [ "${CXXPM_SYSTEM_SUBTYPE}" = "mingw-w64" ]; }; }
   then
     OPENSSL_LIB_DIRECTORY="lib64"
   else
